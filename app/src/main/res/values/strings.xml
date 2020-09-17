@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MessagingTest</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_sub">Subscribe</string>
+    <string name="action_unsub">Unsubscribe</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_disconnect">Disconnect</string>
+</resources>
