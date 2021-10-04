@@ -420,8 +420,10 @@ and few unit tests.
 HELIOS software components are organized into different repositories
 so that these components can be developed separately avoiding many
 conflicts in code integration. However, the modules may also depend
-on each other. However, `Storage` module does not depend on other
-HELIOS projects.
+on each other. `Messaging` module depends on storage module. There
+is a dependency in lib/build.gradle:
+
+    implementation 'eu.h2020.helios_social.core.storage:storage:1.0.87'
 
 ### How to configure the dependencies ###
 
@@ -471,7 +473,7 @@ And the variables of Nexus's credentials are stored locally at
 heliosUser=username
 heliosPassword=password
 ```
-To request Nexus username and password, contact Atos.
+To request Nexus username and password, contact Atos (jordi.hernandezv@atos.net).
 
 ### How to use the dependencies ###
 

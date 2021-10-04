@@ -92,6 +92,6 @@ dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'], exclude: [])
 
-    implementation 'eu.h2020.helios_social.core.storage:storage:1.0.40'
+    implementation 'eu.h2020.helios_social.core.storage:storage:1.0.87'
 
 }
