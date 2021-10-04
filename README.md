@@ -425,6 +425,12 @@ is a dependency in lib/build.gradle:
 
     implementation 'eu.h2020.helios_social.core.storage:storage:1.0.87'
 
+Software componet that wants to utilize `messaging` module should put
+a dependency to a module specific build.gradle file. The dependency
+to the current version is:
+
+    implementation 'eu.h2020.helios_social.core.messaging:messaging:2.0.15'
+
 ### How to configure the dependencies ###
 
 To manage project dependencies developed by the consortium, the
