@@ -3,6 +3,8 @@
 #define NAPI_EXPERIMENTAL
 #include "napi.h"
 
+#include "test_helper.h"
+
 using namespace Napi;
 
 namespace {
@@ -11,7 +13,7 @@ Value IsLossless(const CallbackInfo& info) {
   Env env = info.Env();
 
   BigInt big = info[0].As<BigInt>();
-  bool is_signed = info[1].ToBoolean().Value();
+  bool is_signed = MaybeUnwrap(info[1].ToBoolean()).Value();
 
   bool lossless;
   if (is_signed) {
@@ -44,7 +46,7 @@ Value TestWords(const CallbackInfo& info) {
 
   int sign_bit;
   size_t word_count = 10;
-  uint64_t words[10];
+  uint64_t words[10] = {0};
 
   big.ToWords(&sign_bit, &word_count, words);
 
@@ -59,7 +61,7 @@ Value TestWords(const CallbackInfo& info) {
 Value TestTooBigBigInt(const CallbackInfo& info) {
   int sign_bit = 0;
   size_t word_count = SIZE_MAX;
-  uint64_t words[10];
+  uint64_t words[10] = {0};
 
   return BigInt::New(info.Env(), sign_bit, word_count, words);
 }

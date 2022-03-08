@@ -39,14 +39,25 @@ To use **Node-API** in a native module:
 ```gyp
   'cflags!': [ '-fno-exceptions' ],
   'cflags_cc!': [ '-fno-exceptions' ],
-  'xcode_settings': {
-    'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
-    'CLANG_CXX_LIBRARY': 'libc++',
-    'MACOSX_DEPLOYMENT_TARGET': '10.7',
-  },
-  'msvs_settings': {
-    'VCCLCompilerTool': { 'ExceptionHandling': 1 },
-  },
+  'conditions': [
+    ["OS=='win'", {
+      "defines": [
+        "_HAS_EXCEPTIONS=1"
+      ],
+      "msvs_settings": {
+        "VCCLCompilerTool": {
+          "ExceptionHandling": 1
+        },
+      },
+    }],
+    ["OS=='mac'", {
+      'xcode_settings': {
+        'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+        'CLANG_CXX_LIBRARY': 'libc++',
+        'MACOSX_DEPLOYMENT_TARGET': '10.7',
+      },
+    }],
+  ],
 ```
 
   Alternatively, disable use of C++ exceptions in Node-API:
@@ -54,6 +65,15 @@ To use **Node-API** in a native module:
 ```gyp
   'defines': [ 'NAPI_DISABLE_CPP_EXCEPTIONS' ],
 ```
+
+  If you decide to use node-addon-api without C++ exceptions enabled, please
+  consider enabling node-addon-api safe API type guards to ensure the proper
+  exception handling pattern:
+
+```gyp
+  'defines': [ 'NODE_ADDON_API_ENABLE_MAYBE' ],
+```
+
   4. If you would like your native addon to support OSX, please also add the
   following settings in the `binding.gyp` file:
 
@@ -81,3 +101,10 @@ targeted node version *does not* have Node-API built-in.
 
 The preprocessor directive `NODE_ADDON_API_DISABLE_DEPRECATED` can be defined at
 compile time before including `napi.h` to skip the definition of deprecated APIs.
+
+By default, throwing an exception on a terminating environment (eg. worker
+threads) will cause a fatal exception, terminating the Node process. This is to
+provide feedback to the user of the runtime error, as it is impossible to pass
+the error to JavaScript when the environment is terminating. In order to bypass
+this behavior such that the Node process will not terminate, define the
+preprocessor directive `NODE_API_SWALLOW_UNTHROWABLE_EXCEPTIONS`.

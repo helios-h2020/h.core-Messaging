@@ -1,15 +1,17 @@
 {
   'target_defaults': {
     'includes': ['../common.gypi'],
-    'sources': [
+    'include_dirs': ['./common'],
+    'variables': {
+      'build_sources': [
         'addon.cc',
         'addon_data.cc',
-        'arraybuffer.cc',
-        'asynccontext.cc',
-        'asyncprogressqueueworker.cc',
-        'asyncprogressworker.cc',
-        'asyncworker.cc',
-        'asyncworker-persistent.cc',
+        'array_buffer.cc',
+        'async_context.cc',
+        'async_progress_queue_worker.cc',
+        'async_progress_worker.cc',
+        'async_worker.cc',
+        'async_worker_persistent.cc',
         'basic_types/array.cc',
         'basic_types/boolean.cc',
         'basic_types/number.cc',
@@ -21,10 +23,13 @@
         'callbackscope.cc',
         'dataview/dataview.cc',
         'dataview/dataview_read_write.cc',
+        'env_cleanup.cc',
         'error.cc',
         'external.cc',
         'function.cc',
+        'function_reference.cc',
         'handlescope.cc',
+        'maybe/check.cc',
         'movable_callbacks.cc',
         'memory_management.cc',
         'name.cc',
@@ -44,6 +49,7 @@
         'object/subscript_operator.cc',
         'promise.cc',
         'run_script.cc',
+        "symbol.cc",
         'threadsafe_function/threadsafe_function_ctx.cc',
         'threadsafe_function/threadsafe_function_existing_tsfn.cc',
         'threadsafe_function/threadsafe_function_ptr.cc',
@@ -59,27 +65,52 @@
         'typedarray.cc',
         'objectwrap.cc',
         'objectwrap_constructor_exception.cc',
-        'objectwrap-removewrap.cc',
+        'objectwrap_removewrap.cc',
         'objectwrap_multiple_inheritance.cc',
-        'objectreference.cc',
+        'object_reference.cc',
         'reference.cc',
         'version_management.cc',
         'thunking_manual.cc',
       ],
+      'build_sources_swallowexcept': [
+        'binding-swallowexcept.cc',
+        'error.cc',
+      ],
       'conditions': [
         ['disable_deprecated!="true"', {
-          'sources': ['object/object_deprecated.cc']
+          'build_sources': ['object/object_deprecated.cc']
         }]
-      ],
+      ]
+    },
   },
   'targets': [
     {
       'target_name': 'binding',
-      'includes': ['../except.gypi']
+      'includes': ['../except.gypi'],
+      'sources': ['>@(build_sources)']
     },
     {
       'target_name': 'binding_noexcept',
-      'includes': ['../noexcept.gypi']
+      'includes': ['../noexcept.gypi'],
+      'sources': ['>@(build_sources)']
+    },
+    {
+      'target_name': 'binding_noexcept_maybe',
+      'includes': ['../noexcept.gypi'],
+      'sources': ['>@(build_sources)'],
+      'defines': ['NODE_ADDON_API_ENABLE_MAYBE']
+    },
+    {
+      'target_name': 'binding_swallowexcept',
+      'includes': ['../except.gypi'],
+      'sources': [ '>@(build_sources_swallowexcept)'],
+      'defines': ['NODE_API_SWALLOW_UNTHROWABLE_EXCEPTIONS']
+    },
+    {
+      'target_name': 'binding_swallowexcept_noexcept',
+      'includes': ['../noexcept.gypi'],
+      'sources': ['>@(build_sources_swallowexcept)'],
+      'defines': ['NODE_API_SWALLOW_UNTHROWABLE_EXCEPTIONS']
     },
   ],
 }

@@ -20,6 +20,7 @@ import eu.h2020.helios_social.core.messaging.data.JsonMessageConverter;
 import eu.h2020.helios_social.core.messaging.db.HeliosMessageStore;
 import eu.h2020.helios_social.core.messaging.HeliosMessagingReceiver;
 import eu.h2020.helios_social.core.messaging.HeliosNetworkAddress;
+import eu.h2020.helios_social.core.messaging.p2p.Libp2pMessaging;
 import eu.h2020.helios_social.core.storage.HeliosStorageUtils;
 import eu.h2020.helios_social.core.messaging.nodejs.HeliosMessagingNodejsLibp2p;
 
@@ -31,7 +32,8 @@ import eu.h2020.helios_social.core.messaging.nodejs.HeliosMessagingNodejsLibp2p;
 public class SyncManager {
     private static final String TAG = "SyncManager";
     private static SyncManager sInstance = new SyncManager();
-    private HeliosMessagingNodejsLibp2p mHeliosMessagingNodejs = HeliosMessagingNodejsLibp2p.getInstance();
+    // private HeliosMessagingNodejsLibp2p mHeliosMessagingNodejs = HeliosMessagingNodejsLibp2p.getInstance();
+    private Libp2pMessaging mHeliosMessagingNodejs = Libp2pMessaging.getInstance();
     private final AtomicBoolean mSyncInProgress = new AtomicBoolean(false);
 
     public static SyncManager getInstance() {

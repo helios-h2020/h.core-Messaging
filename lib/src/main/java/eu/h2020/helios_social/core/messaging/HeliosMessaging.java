@@ -1,5 +1,7 @@
 package eu.h2020.helios_social.core.messaging;
 
+import android.content.Context;
+
 /**
  * An interface for HELIOS messaging operations that an underlying message implementation should
  * implement in order to connect, disconnect, publish and subscribe to messages.

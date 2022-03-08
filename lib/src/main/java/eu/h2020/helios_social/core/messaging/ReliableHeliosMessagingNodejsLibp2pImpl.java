@@ -1,8 +1,16 @@
 package eu.h2020.helios_social.core.messaging;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.LinkAddress;
+import android.net.LinkProperties;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.gson.JsonParseException;
 
@@ -12,16 +20,21 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import eu.h2020.helios_social.core.messaging.data.HeliosConversation;
 import eu.h2020.helios_social.core.messaging.data.HeliosConversationList;
@@ -30,6 +43,7 @@ import eu.h2020.helios_social.core.messaging.data.HeliosTopicContext;
 import eu.h2020.helios_social.core.messaging.data.JsonMessageConverter;
 import eu.h2020.helios_social.core.messaging.data.StorageHelperClass;
 import eu.h2020.helios_social.core.messaging.db.HeliosMessageStore;
+import eu.h2020.helios_social.core.messaging.p2p.Libp2pMessaging;
 import eu.h2020.helios_social.core.messaging.sync.HeartbeatDataException;
 import eu.h2020.helios_social.core.messaging.sync.HeartbeatManager;
 import eu.h2020.helios_social.core.messaging.sync.SyncManager;
@@ -50,8 +64,13 @@ public class ReliableHeliosMessagingNodejsLibp2pImpl implements HeliosMessaging,
     private static final String TAG = "ReliableHeliosMessagingNodejsLibp2pImpl";
     private static ReliableHeliosMessagingNodejsLibp2pImpl sInstance = new ReliableHeliosMessagingNodejsLibp2pImpl();
     private android.content.Context mContext = null;
-    private HeliosMessagingNodejsLibp2p mHeliosMessagingNodejs = HeliosMessagingNodejsLibp2p.getInstance();
+    // private HeliosMessagingNodejsLibp2p mHeliosMessagingNodejs = HeliosMessagingNodejsLibp2p.getInstance();
+    private Libp2pMessaging mHeliosMessagingNodejs = Libp2pMessaging.getInstance();
     private boolean mConnected = false;
+    private ConnectivityManager.NetworkCallback mNetworkCallback = null;
+    private ConnectivityManager mConnectivityManager;
+    private String mActiveNetworkInterface = null;
+    private AtomicBoolean mReconnecting = new AtomicBoolean();
 
     private HeartbeatManager mHeartbeatManager = HeartbeatManager.getInstance();
     private HeliosIdentityInfo mHeliosIdentityInfo = null;
@@ -97,10 +116,136 @@ public class ReliableHeliosMessagingNodejsLibp2pImpl implements HeliosMessaging,
         // Expire by default stored messages older than a week
         mChatMessageStore.deleteExpiredEntries(ZonedDateTime.now().minusDays(7).toInstant().toEpochMilli());
 
-        // TODO: Is it possible to move this to private constructor?
-        mHeartbeatManager.init();
-
         mHeliosMessagingNodejs.setContext(mContext);
+
+        // Setup connectivity listener
+        mNetworkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                String name = getNetworkInterfaceName(network);
+                Log.d(TAG, "NETWORK AVAILABLE MESSAGE " + name);
+                Toast.makeText(mContext, "Network available " + name, Toast.LENGTH_LONG).show();
+                Network activeNetwork = mConnectivityManager.getActiveNetwork();
+                if (activeNetwork != null) {
+                    String active = getNetworkInterfaceName(activeNetwork);
+                    if (!active.equals(mActiveNetworkInterface)) {
+                        try {
+                            reconnect();
+                        } catch (HeliosMessagingException e) {
+                            Log.d(TAG, "Reconnection failed + e");
+                            Toast.makeText(mContext, "Reconnection failed", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onLost(Network network) {
+                Log.d(TAG, "NETWORK LOST MESSAGE");
+                Toast.makeText(mContext, "Network lost - reconnect", Toast.LENGTH_LONG).show();
+                Network activeNetwork = mConnectivityManager.getActiveNetwork();
+                if (activeNetwork != null) {
+                    String active = getNetworkInterfaceName(activeNetwork);
+                    if (!active.equals(mActiveNetworkInterface)) {
+                        new Thread(() -> {
+                            try {
+                                reconnect();
+                            } catch (HeliosMessagingException e) {
+                                Log.d(TAG, "Reconnection failed + e");
+                                Toast.makeText(mContext, "Reconnection failed", Toast.LENGTH_LONG).show();
+                            }
+                        }).start();
+                    }
+                }
+
+            }
+
+        };
+        NetworkRequest.Builder builder = new NetworkRequest.Builder();
+        builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+        builder.addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR);
+        NetworkRequest nr = builder.build();
+        mConnectivityManager =
+                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network active = mConnectivityManager.getActiveNetwork();
+        if (active != null) {
+            mActiveNetworkInterface = getNetworkInterfaceName(active);
+        }
+        mConnectivityManager.registerNetworkCallback(nr, mNetworkCallback);
+    }
+
+    private void reconnect() throws HeliosMessagingException {
+        boolean alreadyReconnecting = mReconnecting.getAndSet(true);
+        if (alreadyReconnecting) {
+            return;
+        }
+
+        Log.d(TAG, "DEACTIVATE HEARTBEAT MANAGER");
+        mHeartbeatManager.deactivate();
+        // mChatMessageStore.closeDatabase();
+        Log.d(TAG, "STOP MESSAGING NODE");
+        mHeliosMessagingNodejs.stop();
+        mConnected = false;
+
+        // Log.d(TAG, "NETWORK INTERFACE LOST");
+        // mHeliosMessagingNodejs.networkConnectionLost();
+
+        try {
+            Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
+            while (networks.hasMoreElements()) {
+                NetworkInterface network = (NetworkInterface)networks.nextElement();
+                String name = network.getDisplayName();
+                Enumeration<InetAddress> addresses = network.getInetAddresses();
+                Log.d(TAG, "Network interface " + name);
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = (InetAddress)addresses.nextElement();
+                    Log.d(TAG, "  Addr: " + address.toString());
+                }
+            }
+        } catch (SocketException e) {
+            Log.d(TAG, "Socket exception " + e);
+        }
+
+        Network activeNetwork = null;
+        String activeNetworkInterface = null;
+        do {
+            activeNetwork = mConnectivityManager.getActiveNetwork();
+            if (activeNetwork != null) {
+                activeNetworkInterface = getNetworkInterfaceName(activeNetwork);
+                Log.d(TAG, "Active interface is now " + activeNetworkInterface);
+            } else {
+                Log.d(TAG, "NO ACTIVE NETWORK");
+                SystemClock.sleep(1000);
+            }
+        } while (activeNetwork == null);
+        mActiveNetworkInterface = activeNetworkInterface;
+        //Log.d(TAG, "NETWORK INTERFACE ACTIVE");
+        //mHeliosMessagingNodejs.networkConnectionFound();
+
+        Log.d(TAG, "START MESSAGING NODE");
+        mHeliosMessagingNodejs.start(mHeliosIdentityInfo, mContext);
+        Log.d(TAG, "ADD INTERNAL RECEIVER");
+        addDirectReceiverInternal();
+        mConnected = true;
+        Log.d(TAG, "ACTIVATE HEARTBEAT MANAGER");
+        mHeartbeatManager.activate();
+
+        Log.d(TAG, "RECONNECT DONE");
+        mReconnecting.set(false);
+    }
+
+    private String getNetworkInterfaceName(Network network) {
+        LinkProperties link = mConnectivityManager.getLinkProperties(network);
+        if (link == null) {
+            return new String("Unknown");
+        }
+        List<LinkAddress> addresses = link.getLinkAddresses();
+        String name = new String(link.getInterfaceName());
+        for (LinkAddress address: addresses) {
+            name += " " + address.toString();
+        }
+        Log.d(TAG, "Name: " + name);
+        return name;
     }
 
     /**

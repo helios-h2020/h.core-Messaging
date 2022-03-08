@@ -30,9 +30,11 @@ Object InitDate(Env env);
 #endif
 Object InitDataView(Env env);
 Object InitDataViewReadWrite(Env env);
+Object InitEnvCleanup(Env env);
 Object InitError(Env env);
 Object InitExternal(Env env);
 Object InitFunction(Env env);
+Object InitFunctionReference(Env env);
 Object InitHandleScope(Env env);
 Object InitMovableCallbacks(Env env);
 Object InitMemoryManagement(Env env);
@@ -57,6 +59,7 @@ Object InitTypedThreadSafeFunctionSum(Env env);
 Object InitTypedThreadSafeFunctionUnref(Env env);
 Object InitTypedThreadSafeFunction(Env env);
 #endif
+Object InitSymbol(Env env);
 Object InitTypedArray(Env env);
 Object InitGlobalObject(Env env);
 Object InitObjectWrap(Env env);
@@ -69,6 +72,10 @@ Object InitVersionManagement(Env env);
 Object InitThunkingManual(Env env);
 #if (NAPI_VERSION > 7)
 Object InitObjectFreezeSeal(Env env);
+#endif
+
+#if defined(NODE_ADDON_API_ENABLE_MAYBE)
+Object InitMaybeCheck(Env env);
 #endif
 
 Object Init(Env env, Object exports) {
@@ -102,9 +109,13 @@ Object Init(Env env, Object exports) {
   exports.Set("dataview", InitDataView(env));
   exports.Set("dataview_read_write", InitDataView(env));
   exports.Set("dataview_read_write", InitDataViewReadWrite(env));
+#if (NAPI_VERSION > 2)
+  exports.Set("env_cleanup", InitEnvCleanup(env));
+#endif
   exports.Set("error", InitError(env));
   exports.Set("external", InitExternal(env));
   exports.Set("function", InitFunction(env));
+  exports.Set("functionreference", InitFunctionReference(env));
   exports.Set("name", InitName(env));
   exports.Set("handlescope", InitHandleScope(env));
   exports.Set("movable_callbacks", InitMovableCallbacks(env));
@@ -115,6 +126,7 @@ Object Init(Env env, Object exports) {
 #endif // !NODE_ADDON_API_DISABLE_DEPRECATED
   exports.Set("promise", InitPromise(env));
   exports.Set("run_script", InitRunScript(env));
+  exports.Set("symbol", InitSymbol(env));
 #if (NAPI_VERSION > 3)
   exports.Set("threadsafe_function_ctx", InitThreadSafeFunctionCtx(env));
   exports.Set("threadsafe_function_existing_tsfn", InitThreadSafeFunctionExistingTsfn(env));
@@ -146,6 +158,10 @@ Object Init(Env env, Object exports) {
   exports.Set("thunking_manual", InitThunkingManual(env));
 #if (NAPI_VERSION > 7)
   exports.Set("object_freeze_seal", InitObjectFreezeSeal(env));
+#endif
+
+#if defined(NODE_ADDON_API_ENABLE_MAYBE)
+  exports.Set("maybe_check", InitMaybeCheck(env));
 #endif
   return exports;
 }

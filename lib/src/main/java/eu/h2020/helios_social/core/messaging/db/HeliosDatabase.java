@@ -7,7 +7,7 @@ import androidx.room.TypeConverters;
 /**
  * Helios message store database using Room persistence library (SQLite-based).
  */
-@Database(entities = {HeliosData.class}, version = 3, exportSchema = false)
+@Database(entities = {HeliosData.class}, version = 4, exportSchema = false)
 public abstract class HeliosDatabase extends RoomDatabase {
     public abstract HeliosDataDao heliosDataDao();
 }

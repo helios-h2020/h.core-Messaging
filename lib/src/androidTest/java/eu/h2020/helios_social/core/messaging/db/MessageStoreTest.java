@@ -1,6 +1,7 @@
 package eu.h2020.helios_social.core.messaging.db;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteConstraintException;
 import android.util.Log;
 
 import androidx.room.Room;
@@ -219,6 +220,31 @@ public class MessageStoreTest {
         assertTrue(1 + 1 == 2);
     }
 
+    @Test
+    public void doNotAddDuplicates() {
+        boolean caught = false;
+        heliosDao.addMessages(createTestData1());
+        try {
+            heliosDao.addMessages(createTestData5());
+        } catch (SQLiteConstraintException e) {
+            caught = true;
+        }
+        if (!caught) {
+            Log.e(TAG, "Exception not triggered");
+            fail();
+        }
+        List<HeliosData> messages = heliosDao.loadMessages(new String("test"));
+        if (messages == null) {
+            Log.e(TAG, "No messages returned");
+            fail();
+        }
+        if (messages.size() != 1) {
+            Log.e(TAG, "Wrong number of messages " + messages.size());
+            fail();
+        }
+        assertTrue(1 + 1 == 2);
+    }
+
     @After
     public void tearDown() throws IOException {
         db.close();
@@ -291,6 +317,24 @@ public class MessageStoreTest {
         data.mMessageUUID = "adda1726-6f47-11eb-a9ce-f7377436fa2d";
         data.mMediaFilename = null;
         data.mMessage = "new message from sender Test2";
+        data.mProtocol = "UNKNOWN";
+        data.mSenderNetworkId = "UNKNOWN";
+        return data;
+    }
+
+    private HeliosData createTestData5() {
+        HeliosData data = new HeliosData();
+        data.mMessageType = 1;
+        data.mOriginalType = 1;
+        data.mReceived = true;
+        data.mSenderName = "XTest1";
+        data.mSenderUUID = "18ef9bce-70a4-445a-be6c-fd60792d6983";
+        data.mTopic = "test";
+        data.mTimestamp = "2021-02-11T05:52:45.248Z";
+        data.mMilliseconds = ZonedDateTime.parse(data.mTimestamp).toInstant().toEpochMilli();
+        data.mMessageUUID = "dace7176-481d-4ab2-b022-7b3d1c28a604";
+        data.mMediaFilename = "name";
+        data.mMessage = "duplicate test message with same message UUID";
         data.mProtocol = "UNKNOWN";
         data.mSenderNetworkId = "UNKNOWN";
         return data;

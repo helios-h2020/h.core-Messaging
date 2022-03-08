@@ -82,11 +82,24 @@ Value CheckSymbol(const CallbackInfo& info) {
   return Boolean::New(info.Env(), info[0].Type() == napi_symbol);
 }
 
+void NullStringShouldThrow(const CallbackInfo& info) {
+  const char* nullStr = nullptr;
+  String::New(info.Env(), nullStr);
+}
+
+void NullString16ShouldThrow(const CallbackInfo& info) {
+  const char16_t* nullStr = nullptr;
+  String::New(info.Env(), nullStr);
+}
+
 Object InitName(Env env) {
   Object exports = Object::New(env);
 
   exports["echoString"] = Function::New(env, EchoString);
   exports["createString"] = Function::New(env, CreateString);
+  exports["nullStringShouldThrow"] = Function::New(env, NullStringShouldThrow);
+  exports["nullString16ShouldThrow"] =
+      Function::New(env, NullString16ShouldThrow);
   exports["checkString"] = Function::New(env, CheckString);
   exports["createSymbol"] = Function::New(env, CreateSymbol);
   exports["checkSymbol"] = Function::New(env, CheckSymbol);

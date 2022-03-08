@@ -1,4 +1,6 @@
+#include <memory>
 #include "napi.h"
+#include "test_helper.h"
 
 using namespace Napi;
 
@@ -53,8 +55,8 @@ Value ValueCallbackWithData(const CallbackInfo& info) {
 
 Value CallWithArgs(const CallbackInfo& info) {
   Function func = info[0].As<Function>();
-  return func.Call(
-      std::initializer_list<napi_value>{info[1], info[2], info[3]});
+  return MaybeUnwrap(
+      func.Call(std::initializer_list<napi_value>{info[1], info[2], info[3]}));
 }
 
 Value CallWithVector(const CallbackInfo& info) {
@@ -64,7 +66,7 @@ Value CallWithVector(const CallbackInfo& info) {
    args.push_back(info[1]);
    args.push_back(info[2]);
    args.push_back(info[3]);
-   return func.Call(args);
+   return MaybeUnwrap(func.Call(args));
 }
 
 Value CallWithCStyleArray(const CallbackInfo& info) {
@@ -74,7 +76,7 @@ Value CallWithCStyleArray(const CallbackInfo& info) {
   args.push_back(info[1]);
   args.push_back(info[2]);
   args.push_back(info[3]);
-  return func.Call(args.size(), args.data());
+  return MaybeUnwrap(func.Call(args.size(), args.data()));
 }
 
 Value CallWithReceiverAndCStyleArray(const CallbackInfo& info) {
@@ -85,13 +87,14 @@ Value CallWithReceiverAndCStyleArray(const CallbackInfo& info) {
   args.push_back(info[2]);
   args.push_back(info[3]);
   args.push_back(info[4]);
-  return func.Call(receiver, args.size(), args.data());
+  return MaybeUnwrap(func.Call(receiver, args.size(), args.data()));
 }
 
 Value CallWithReceiverAndArgs(const CallbackInfo& info) {
    Function func = info[0].As<Function>();
    Value receiver = info[1];
-   return func.Call(receiver, std::initializer_list<napi_value>{ info[2], info[3], info[4] });
+   return MaybeUnwrap(func.Call(
+       receiver, std::initializer_list<napi_value>{info[2], info[3], info[4]}));
 }
 
 Value CallWithReceiverAndVector(const CallbackInfo& info) {
@@ -102,17 +105,19 @@ Value CallWithReceiverAndVector(const CallbackInfo& info) {
    args.push_back(info[2]);
    args.push_back(info[3]);
    args.push_back(info[4]);
-   return func.Call(receiver, args);
+   return MaybeUnwrap(func.Call(receiver, args));
 }
 
 Value CallWithInvalidReceiver(const CallbackInfo& info) {
    Function func = info[0].As<Function>();
-   return func.Call(Value(), std::initializer_list<napi_value>{});
+   return MaybeUnwrapOr(func.Call(Value(), std::initializer_list<napi_value>{}),
+                        Value());
 }
 
 Value CallConstructorWithArgs(const CallbackInfo& info) {
    Function func = info[0].As<Function>();
-   return func.New(std::initializer_list<napi_value>{ info[1], info[2], info[3] });
+   return MaybeUnwrap(
+       func.New(std::initializer_list<napi_value>{info[1], info[2], info[3]}));
 }
 
 Value CallConstructorWithVector(const CallbackInfo& info) {
@@ -122,7 +127,7 @@ Value CallConstructorWithVector(const CallbackInfo& info) {
    args.push_back(info[1]);
    args.push_back(info[2]);
    args.push_back(info[3]);
-   return func.New(args);
+   return MaybeUnwrap(func.New(args));
 }
 
 Value CallConstructorWithCStyleArray(const CallbackInfo& info) {
@@ -132,7 +137,7 @@ Value CallConstructorWithCStyleArray(const CallbackInfo& info) {
   args.push_back(info[1]);
   args.push_back(info[2]);
   args.push_back(info[3]);
-  return func.New(args.size(), args.data());
+  return MaybeUnwrap(func.New(args.size(), args.data()));
 }
 
 void IsConstructCall(const CallbackInfo& info) {
@@ -191,7 +196,7 @@ void MakeCallbackWithInvalidReceiver(const CallbackInfo& info) {
 
 Value CallWithFunctionOperator(const CallbackInfo& info) {
   Function func = info[0].As<Function>();
-  return func({info[1], info[2], info[3]});
+  return MaybeUnwrap(func({info[1], info[2], info[3]}));
 }
 
 } // end anonymous namespace
@@ -267,5 +272,24 @@ Object InitFunction(Env env) {
   exports["callWithFunctionOperator"] =
       Function::New<CallWithFunctionOperator>(env);
   result["templated"] = exports;
+
+  exports = Object::New(env);
+  exports["lambdaWithNoCapture"] =
+      Function::New(env, [](const CallbackInfo& info) {
+        auto env = info.Env();
+        return Boolean::New(env, true);
+      });
+  exports["lambdaWithCapture"] =
+      Function::New(env, [data = 42](const CallbackInfo& info) {
+        auto env = info.Env();
+        return Boolean::New(env, data == 42);
+      });
+  exports["lambdaWithMoveOnlyCapture"] = Function::New(
+      env, [data = std::make_unique<int>(42)](const CallbackInfo& info) {
+        auto env = info.Env();
+        return Boolean::New(env, *data == 42);
+      });
+  result["lambda"] = exports;
+
   return result;
 }

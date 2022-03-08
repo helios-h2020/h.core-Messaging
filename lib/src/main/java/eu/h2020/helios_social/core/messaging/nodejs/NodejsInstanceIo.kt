@@ -51,7 +51,7 @@ class NodejsInstanceIo(val input: InputStream, val output: OutputStream) : Runna
 
     private fun send(data: String) {
         writer.write(data)
-        writer.write('\n'.toInt())
+        writer.write('\n'.code)
         writer.flush()
     }
 

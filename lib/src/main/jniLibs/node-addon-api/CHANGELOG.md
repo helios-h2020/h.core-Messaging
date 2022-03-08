@@ -1,5 +1,95 @@
 # node-addon-api Changelog
 
+## 2021-09-17 Version 4.2.0, @NickNaso
+
+### Notable changes:
+
+#### API
+
+- Allow creating Function with move-only functor.
+- Fixed casts to not be undefined behavior.
+
+#### TEST
+
+- Fixed the way to enable C++ exceptions.
+- Run tests with options to prefix build root path.
+
+### Documentation
+
+- Fixed documentation about how to enable C++ exception.
+- Minor fixes all over documentation.
+
+### Commits
+
+* [[`2dc1f5b66c`](https://github.com/nodejs/node-addon-api/commit/2dc1f5b66c)] - Merge pull request #1065 from strager/move-only-functor (Nicola Del Gobbo)
+* [[`2b57a4aa4c`](https://github.com/nodejs/node-addon-api/commit/2b57a4aa4c)] - **src**: fix casts to not be undefined behavior (Anna Henningsen) [#1070](https://github.com/nodejs/node-addon-api/pull/1070)
+* [[`76de4d8222`](https://github.com/nodejs/node-addon-api/commit/76de4d8222)] - **docs**: fix typos (#1068) (todoroff)
+* [[`22a2f3c926`](https://github.com/nodejs/node-addon-api/commit/22a2f3c926)] - **docs**: fix typo and formatting (#1062) (strager)
+* [[`62b666c34c`](https://github.com/nodejs/node-addon-api/commit/62b666c34c)] - **test**: run tests with opts to prefix bld root path (Deepak Rajamohan) [#1055](https://github.com/nodejs/node-addon-api/pull/1055)
+* [[`cbac3aac5d`](https://github.com/nodejs/node-addon-api/commit/cbac3aac5d)] - **test**: standardize unit test file names (Deepak Rajamohan) [#1056](https://github.com/nodejs/node-addon-api/pull/1056)
+* [[`3e5897a78b`](https://github.com/nodejs/node-addon-api/commit/3e5897a78b)] - **src,test**: allow creating Function with move-only functor (Matthew "strager" Glazar)
+* [[`da2e754a02`](https://github.com/nodejs/node-addon-api/commit/da2e754a02)] - **test**: fix errors reported by newer compiler (Michael Dawson)
+* [[`9aaf3b1324`](https://github.com/nodejs/node-addon-api/commit/9aaf3b1324)] - **doc**: fix documentation about how to enable C++ exception (#1059) (Nicola Del Gobbo) [#1059](https://github.com/nodejs/node-addon-api/pull/1059)
+* [[`b2f861987f`](https://github.com/nodejs/node-addon-api/commit/b2f861987f)] - **test**: fixed the way to enable C++ exceptions. (#1061) (Nicola Del Gobbo) [#1061](https://github.com/nodejs/node-addon-api/pull/1061)
+
+## 2021-08-25 Version 4.1.0, @NickNaso
+
+### Notable changes:
+
+#### API
+
+- `Napi::Reference` updated the default value to reflect the most possible 
+values when there are any errors occurred on `napi_reference_unref`.
+- Added the check for nullpointer on `Napi::String` initialization.
+- Added the wraps for `napi_add_env_cleanup_hook` and 
+`napi_remove_env_cleanup_hook`.
+- Added `Napi::Maybe<T>` class to handle pending exception when cpp exception
+disabled.
+
+#### TEST
+
+- Added first set of tests for `Napi::Symbol`.
+- Updated test suite to avoid parallel running.
+
+### Documentation
+
+- Updated example for context sensitivity.
+
+### Commits
+
+* [[`3615041423`](https://github.com/nodejs/node-addon-api/commit/3615041423)] - **src**: return Maybe on pending exception when cpp exception disabled (legendecas) [#927](https://github.com/nodejs/node-addon-api/pull/927)
+* [[`10564a43c6`](https://github.com/nodejs/node-addon-api/commit/10564a43c6)] - **src**: add AddCleanupHook (Kevin Eady) [#1014](https://github.com/nodejs/node-addon-api/pull/1014)
+* [[`a459f5cc8f`](https://github.com/nodejs/node-addon-api/commit/a459f5cc8f)] - **doc**: update tests to avoid running in parallel (Michael Dawson) [#1024](https://github.com/nodejs/node-addon-api/pull/1024)
+* [[`6697c51d1d`](https://github.com/nodejs/node-addon-api/commit/6697c51d1d)] - **src,test**: fix up null char \* exception thrown (Gabriel Schulhof) [#1019](https://github.com/nodejs/node-addon-api/pull/1019)
+* [[`e02e8a4ce3`](https://github.com/nodejs/node-addon-api/commit/e02e8a4ce3)] - **test**: add  first set of symbol tests (JckXia) [#972](https://github.com/nodejs/node-addon-api/pull/972)
+* [[`da50b51398`](https://github.com/nodejs/node-addon-api/commit/da50b51398)] - **test**: dd check for nullptr inside String init (JckXia) [#1015](https://github.com/nodejs/node-addon-api/pull/1015)
+* [[`627dbf3c37`](https://github.com/nodejs/node-addon-api/commit/627dbf3c37)] - **doc**: update examples for context sensitivity (Kevin Eady) [#1013](https://github.com/nodejs/node-addon-api/pull/1013)
+* [[`37a9b8e753`](https://github.com/nodejs/node-addon-api/commit/37a9b8e753)] - **src**: set default return value of Reference Ref/Unref to 0 (legendecas) [#1004](https://github.com/nodejs/node-addon-api/pull/1004)
+
+## 2021-06-15 Version 4.0.0, @NickNaso
+
+### Notable changes:
+
+#### API
+
+- Fixed a crashing issue in `Napi::Error::ThrowAsJavaScriptException` 
+introducing the preprocessor directive `NODE_API_SWALLOW_UNTHROWABLE_EXCEPTIONS`.
+- Fixed compilation problem for GCC 11 and C++20. 
+
+#### TEST
+
+- Added test for function reference call and contructor.
+
+### Documentation
+
+- Updated the oldest Node.js version supported from `10.x` to `12.x`.
+
+### Commits
+
+* [[`028107f686`](https://github.com/nodejs/node-addon-api/commit/028107f686)] - **src**: fix Error::ThrowAsJavaScriptException crash (rudolftam) [#975](https://github.com/nodejs/node-addon-api/pull/975)
+* [[`fed13534c5`](https://github.com/nodejs/node-addon-api/commit/fed13534c5)] - **src**: fix gcc-11 c++20 compilation (Kevin Eady) [#1009](https://github.com/nodejs/node-addon-api/pull/1009)
+* [[`b75afc4d29`](https://github.com/nodejs/node-addon-api/commit/b75afc4d29)] - **test**: function reference call & construct (legendecas) [#1005](https://github.com/nodejs/node-addon-api/pull/1005)
+
 ## 2021-05-28 Version 3.2.1, @NickNaso
 
 ### Notable changes:

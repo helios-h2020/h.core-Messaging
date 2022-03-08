@@ -182,12 +182,18 @@ class HeliosMessagingNodejsLibp2p : HeliosMessaging {
                 listenAddrs.add(listIterator.next() + "/p2p-circuit")
             }
         }
-
+        val swarmKeyProtocol = sharedPreferences.getString("swarmKeyProtocol", "/key/swarm/psk/1.0.0/")
+        val swarmKeyEncoding = sharedPreferences.getString("swarmKeyEncoding", "/base16/")
+        val swarmKeyData = sharedPreferences.getString("swarmKeyData", "bc22c182f9f47f3daebf961a0f5242e4731ae7bf566869b530b527d9ef2d3fb0")
         val clientOptions = mapOf(
-            "starNodes" to emptyList(),
-            "listenAddrs" to listenAddrs,
-            "bootstrapAddrs" to bootstrapAddrs,
+                "starNodes" to emptyList<String>(),
+                "listenAddrs" to listenAddrs,
+                "bootstrapAddrs" to bootstrapAddrs,
+                "swarmKeyProtocol" to swarmKeyProtocol,
+                "swarmKeyEncoding" to swarmKeyEncoding,
+                "swarmKeyData" to swarmKeyData,
         )
+
 
         Log.d("DEBUG", listenAddrs.toString())
         Log.d("DEBUG", bootstrapAddrs.toString())

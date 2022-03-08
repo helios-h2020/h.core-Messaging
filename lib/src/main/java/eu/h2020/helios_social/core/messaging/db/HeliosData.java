@@ -2,12 +2,13 @@ package eu.h2020.helios_social.core.messaging.db;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 /**
  * Helios message storage database data entity. This is used in Room persistence library
  */
-@Entity(tableName="messages")
+@Entity(tableName="messages", indices = {@Index(value = "Message_UUID", unique = true)})
 public class HeliosData {
 
     @PrimaryKey(autoGenerate = true)

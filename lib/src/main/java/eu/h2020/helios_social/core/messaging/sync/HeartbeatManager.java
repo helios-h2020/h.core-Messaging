@@ -34,16 +34,31 @@ import eu.h2020.helios_social.core.messaging.HeliosNetworkAddress;
 public class HeartbeatManager {
     private static final String TAG = "HeartbeatManager";
     private static HeartbeatManager sInstance = new HeartbeatManager();
-    private HandlerThread mHeartbeatHandlerThread = new HandlerThread("HeartbeatHandlerThread");
+    private HandlerThread mHeartbeatHandlerThread = null;
     private Handler mHeartbeatHandler = null;
     private int mHeartbeatCounter = 1;
     private int mHeartbeatInterval = 60 * 1000; // 1 minute
     private int mHeartbeatDelay = 3300; // 3.3 seconds
+    private Boolean mActive = false;
     private Hashtable<String, Hashtable<String, HeliosEgoTag>> mHeartbeatUsers = new Hashtable<>();
     private Hashtable<String, HeliosEgoTag> mHeartbeatUsersDm = new Hashtable<>();
 
     public static HeartbeatManager getInstance() {
         return sInstance;
+    }
+
+    private HeartbeatManager() {
+        mHeartbeatHandlerThread = new HandlerThread("HeartbeatHandlerThread");
+        mHeartbeatHandlerThread.start();
+        mHeartbeatHandler = new Handler(mHeartbeatHandlerThread.getLooper());
+    }
+
+    /**
+     * @deprecated
+     * This is no longer needed as functionality has been moved to private constructor.
+     */
+    @Deprecated
+    public void init() {
     }
 
     public boolean isHeartbeatMsg(HeliosMessagePart msg) {
@@ -52,17 +67,6 @@ public class HeartbeatManager {
 
     public boolean isJoinMsg(HeliosMessagePart msg) {
         return (msg.messageType == HeliosMessagePart.MessagePartType.JOIN);
-    }
-
-    /**
-     * Initialize heartbeat - can be called early but not yet used.
-     */
-    public void init() {
-        Log.d(TAG, "init()");
-        if (!mHeartbeatHandlerThread.isAlive()) {
-            mHeartbeatHandlerThread.start();
-            mHeartbeatHandler = new Handler(mHeartbeatHandlerThread.getLooper());
-        }
     }
 
     /**
@@ -196,6 +200,7 @@ public class HeartbeatManager {
      */
     public void start(HeliosMessaging messaging, HeliosConnect connector, HeliosIdentityInfo identity) {
         Log.d(TAG, "start()");
+        mActive = true;
         mHeartbeatHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -221,8 +226,13 @@ public class HeartbeatManager {
                             heartbeatMsg.sinceTs = sinceTs.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
 
                             try {
-                                messaging.publish(new HeliosTopic(heartbeatMsg.to, heartbeatMsg.to), new HeliosMessage(JsonMessageConverter.getInstance().convertToJson(heartbeatMsg)));
-                                Log.d(TAG, "heartbeat sent to:" + heartbeatMsg.to);
+                                if (mActive) {
+                                    messaging.publish(new HeliosTopic(heartbeatMsg.to, heartbeatMsg.to),
+                                            new HeliosMessage(JsonMessageConverter.getInstance().convertToJson(heartbeatMsg)));
+                                    Log.d(TAG, "heartbeat sent to:" + heartbeatMsg.to);
+                                } else {
+                                    Log.d(TAG, "skip heartbeat to:" + heartbeatMsg.to);
+                                }
                             } catch (HeliosMessagingException e) {
                                 Log.e(TAG, "heartbeat.run error sending to:" + heartbeatMsg.to);
                                 e.printStackTrace();
@@ -241,6 +251,18 @@ public class HeartbeatManager {
      */
     public void stop() {
         mHeartbeatHandlerThread.quit();
+    }
+
+    public void activate() {
+        mActive = true;
+    }
+
+    public void deactivate() {
+        mActive = false;
+    }
+
+    public Boolean isActive() {
+        return mActive;
     }
 
     /**

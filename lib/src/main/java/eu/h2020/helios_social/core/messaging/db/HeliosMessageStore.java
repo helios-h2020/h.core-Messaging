@@ -1,6 +1,7 @@
 package eu.h2020.helios_social.core.messaging.db;
 
 import android.content.Context;
+import android.database.sqlite.SQLiteConstraintException;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -44,7 +45,11 @@ public class HeliosMessageStore {
      */
     public void addMessage(HeliosMessagePart message) {
         HeliosData data = convertToDBEntry(message);
-        mHeliosDataDao.addMessages(data);
+        try {
+            mHeliosDataDao.addMessages(data);
+        } catch (SQLiteConstraintException e) {
+            Log.d(TAG, "An attempt to add duplicate message to db - blocked");
+        }
     }
 
     /**

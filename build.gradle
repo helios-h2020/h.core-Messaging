@@ -27,6 +27,19 @@ allprojects {
                 password = heliosPassword
             }
         }
+        mavenLocal()
+        maven { url 'https://jitpack.io' }
+        maven {
+            url "https://gitlab.vtt.fi/api/v4/projects/550/packages/maven"
+            name "GitLab"
+            credentials(HttpHeaderCredentials) {
+                name = 'Private-Token'
+                value = gitLabPrivateToken
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
     }
     gradle.projectsEvaluated {
         tasks.withType(JavaCompile) {
