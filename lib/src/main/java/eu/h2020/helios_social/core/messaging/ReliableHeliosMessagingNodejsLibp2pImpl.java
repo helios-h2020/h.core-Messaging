@@ -43,7 +43,7 @@ import eu.h2020.helios_social.core.messaging.data.HeliosTopicContext;
 import eu.h2020.helios_social.core.messaging.data.JsonMessageConverter;
 import eu.h2020.helios_social.core.messaging.data.StorageHelperClass;
 import eu.h2020.helios_social.core.messaging.db.HeliosMessageStore;
-import eu.h2020.helios_social.core.messaging.p2p.Libp2pMessaging;
+import eu.h2020.helios_social.core.messaging.streamr.HeliosMessagingStreamrLibp2p;
 import eu.h2020.helios_social.core.messaging.sync.HeartbeatDataException;
 import eu.h2020.helios_social.core.messaging.sync.HeartbeatManager;
 import eu.h2020.helios_social.core.messaging.sync.SyncManager;
@@ -52,7 +52,6 @@ import eu.h2020.helios_social.core.messaging.HeliosEgoTag;
 import eu.h2020.helios_social.core.messaging.HeliosMessageLibp2pPubSub;
 import eu.h2020.helios_social.core.messaging.HeliosMessagingReceiver;
 import eu.h2020.helios_social.core.messaging.HeliosNetworkAddress;
-import eu.h2020.helios_social.core.messaging.nodejs.HeliosMessagingNodejsLibp2p;
 import kotlin.Unit;
 
 import static eu.h2020.helios_social.core.messaging.MessagingConstants.HELIOS_DIRECT_CHAT_FILE_PROTO;
@@ -65,7 +64,7 @@ public class ReliableHeliosMessagingNodejsLibp2pImpl implements HeliosMessaging,
     private static ReliableHeliosMessagingNodejsLibp2pImpl sInstance = new ReliableHeliosMessagingNodejsLibp2pImpl();
     private android.content.Context mContext = null;
     // private HeliosMessagingNodejsLibp2p mHeliosMessagingNodejs = HeliosMessagingNodejsLibp2p.getInstance();
-    private Libp2pMessaging mHeliosMessagingNodejs = Libp2pMessaging.getInstance();
+    private HeliosMessagingStreamrLibp2p mHeliosMessagingNodejs = HeliosMessagingStreamrLibp2p.getInstance();
     private boolean mConnected = false;
     private ConnectivityManager.NetworkCallback mNetworkCallback = null;
     private ConnectivityManager mConnectivityManager;

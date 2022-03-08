@@ -1,0 +1,15 @@
+{
+  "name": "helios-streamr",
+  "version": "1.0.0",
+  "description": "Streamr Helios integration",
+  "main": "lib/streamr-mobile-client.js",
+  "author": "Markku Kylänpää",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "streamr-client": "^6.0.0-beta.3",
+    "split": "^1.0.1",
+    "node-pipe2": "^0.2.0",
+    "bl": "^4.0.3",
+    "bluebird": "^3.7.2"
+  }
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"node-fetch.js","sourceRoot":"","sources":["../../../src/shim/node-fetch.ts"],"names":[],"mappings":";;AACA,gFAAgF;AAChF,kBAAe,CACX,CAAC,CAAC,OAAO,MAAM,KAAK,WAAW,IAAI,OAAO,MAAM,CAAC,KAAK,KAAK,WAAW,IAAI,MAAM,CAAC,KAAK,CAAC,IAAI,CAAC,MAAM,CAAC,CAAC;OAC7F,CAAC,OAAO,KAAK,KAAK,WAAW,IAAI,KAAK,CAAC,IAAI,SAAS,CAAE,CAChE,CAAA"}

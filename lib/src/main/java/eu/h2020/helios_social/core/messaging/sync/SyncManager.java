@@ -20,9 +20,8 @@ import eu.h2020.helios_social.core.messaging.data.JsonMessageConverter;
 import eu.h2020.helios_social.core.messaging.db.HeliosMessageStore;
 import eu.h2020.helios_social.core.messaging.HeliosMessagingReceiver;
 import eu.h2020.helios_social.core.messaging.HeliosNetworkAddress;
-import eu.h2020.helios_social.core.messaging.p2p.Libp2pMessaging;
 import eu.h2020.helios_social.core.storage.HeliosStorageUtils;
-import eu.h2020.helios_social.core.messaging.nodejs.HeliosMessagingNodejsLibp2p;
+import eu.h2020.helios_social.core.messaging.streamr.HeliosMessagingStreamrLibp2p;
 
 /**
  * Singleton manager class that takes care of handling direct message resending to
@@ -33,8 +32,9 @@ public class SyncManager {
     private static final String TAG = "SyncManager";
     private static SyncManager sInstance = new SyncManager();
     // private HeliosMessagingNodejsLibp2p mHeliosMessagingNodejs = HeliosMessagingNodejsLibp2p.getInstance();
-    private Libp2pMessaging mHeliosMessagingNodejs = Libp2pMessaging.getInstance();
+    private HeliosMessagingStreamrLibp2p mHeliosMessagingNodejs = HeliosMessagingStreamrLibp2p.getInstance();
     private final AtomicBoolean mSyncInProgress = new AtomicBoolean(false);
+    private Boolean mEnabled = false; // Disable SyncManager for SpringAPp builds
 
     public static SyncManager getInstance() {
         return sInstance;
@@ -50,6 +50,9 @@ public class SyncManager {
      * @param map A hash map of direct message receivers (can be null)
      */
     public void syncDirectMessages(Context context, String uuid, String networkId, HeliosMessageStore store, HashMap<String, HeliosMessagingReceiver> map) {
+        if (!mEnabled) {
+            return;
+        }
         // Are we already syncing messages to this user
         if (hasNode(uuid)) {
             Log.d(TAG, "Already syncing to: " + uuid);
@@ -76,6 +79,9 @@ public class SyncManager {
      * @param address Network address of the recipient
      */
     public void syncMessages(Iterable<HeliosMessagePart> messages, HeliosNetworkAddress address) {
+        if (!mEnabled) {
+            return;
+        }
         if (!mSyncInProgress.compareAndSet(false, true)) {
             Log.d(TAG, "sync already in progress");
             return;

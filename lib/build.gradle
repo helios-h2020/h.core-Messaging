@@ -1,6 +1,13 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+task ZipStreamrNodeFiles(type: Zip) {
+    archiveFileName = "streamr-node-files.zip"
+    println("MY ZIP TASK ${projectDir}")
+    destinationDirectory = file("${projectDir}/src/main/assets")
+    from "${projectDir}/src/main/js"
+}
+
 android {
     compileSdkVersion 30
 
@@ -25,7 +32,7 @@ android {
         }
 
         ndk {
-            abiFilters "x86", "arm64-v8a", "armeabi-v7a", "x86_64"
+            abiFilters "arm64-v8a", "x86_64"
         }
 
         testOptions {
@@ -48,7 +55,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-
+    preBuild.dependsOn(ZipStreamrNodeFiles)
 }
 
 dependencies {

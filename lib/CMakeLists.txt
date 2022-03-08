@@ -19,6 +19,7 @@ add_library( node_bridge
     SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/node_fd_pass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/jni_node_bridge.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/jni_streamr_bridge.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/stdio_redirect.cpp
 )
 
@@ -28,7 +29,9 @@ target_compile_options( node_bridge
         -Wextra -Wall -Wconversion -Wsign-conversion -pedantic-errors>
     $<$<CXX_COMPILER_ID:MSVC>:
         /W4>
-)
+	)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 find_library(
     log-lib

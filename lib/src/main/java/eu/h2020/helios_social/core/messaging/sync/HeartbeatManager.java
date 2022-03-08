@@ -42,15 +42,18 @@ public class HeartbeatManager {
     private Boolean mActive = false;
     private Hashtable<String, Hashtable<String, HeliosEgoTag>> mHeartbeatUsers = new Hashtable<>();
     private Hashtable<String, HeliosEgoTag> mHeartbeatUsersDm = new Hashtable<>();
+    private Boolean mEnabled = false; // Disable HeartbeatManager for SpringApp version
 
     public static HeartbeatManager getInstance() {
         return sInstance;
     }
 
     private HeartbeatManager() {
-        mHeartbeatHandlerThread = new HandlerThread("HeartbeatHandlerThread");
-        mHeartbeatHandlerThread.start();
-        mHeartbeatHandler = new Handler(mHeartbeatHandlerThread.getLooper());
+        if (mEnabled) {
+            mHeartbeatHandlerThread = new HandlerThread("HeartbeatHandlerThread");
+            mHeartbeatHandlerThread.start();
+            mHeartbeatHandler = new Handler(mHeartbeatHandlerThread.getLooper());
+        }
     }
 
     /**
@@ -79,21 +82,23 @@ public class HeartbeatManager {
      * @param address recipient HeliosNetworkAddress
      */
     public void sendIsOnlineTo(HeliosDirectMessaging messaging, HeliosConnect connector, String proto, String statusMsg, HeliosNetworkAddress address) {
-        // TODO: Should we have a pool
-        new Thread(() -> {
-            try {
-                Log.d(TAG, "sendIsOnlineTo:" + address.getNetworkId() + " thread id:" + Thread.currentThread().getId());
-                if (connector.isConnected()) {
-                    messaging.sendTo(address, proto, statusMsg.getBytes());
-                } else {
-                    Log.d(TAG, "sendIsOnlineTo: connector is not connected.");
+        if (mEnabled) {
+            // TODO: Should we have a pool
+            new Thread(() -> {
+                try {
+                    Log.d(TAG, "sendIsOnlineTo:" + address.getNetworkId() + " thread id:" + Thread.currentThread().getId());
+                    if (connector.isConnected()) {
+                        messaging.sendTo(address, proto, statusMsg.getBytes());
+                    } else {
+                        Log.d(TAG, "sendIsOnlineTo: connector is not connected.");
+                    }
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Could not sendIsOnlineTo " + address.getNetworkId() + ": " + e.getMessage());
+                } finally {
+                    Log.d(TAG, "sendIsOnlineTo finished to " + address.getNetworkId());
                 }
-            } catch (RuntimeException e) {
-                Log.e(TAG, "Could not sendIsOnlineTo " + address.getNetworkId() + ": " + e.getMessage());
-            } finally {
-                Log.d(TAG, "sendIsOnlineTo finished to " + address.getNetworkId());
-            }
-        }).start();
+            }).start();
+        }
     }
 
     /**
@@ -108,15 +113,16 @@ public class HeartbeatManager {
         Log.d(TAG, "getCurrentOnlineStatus");
 
         ArrayList<HeliosEgoTag> arr = new ArrayList<>();
-        if(userHeliosAddresses != null) {
-            for (HeliosNetworkAddress a : userHeliosAddresses) {
-                Log.d(TAG, "getCurrentOnlineStatus do we have address: " + a.getNetworkId());
-                if (a.getNetworkId() != null && mHeartbeatUsersDm.containsKey(a.getNetworkId())) {
-                    arr.add(mHeartbeatUsersDm.get(a.getNetworkId()));
+        if (mEnabled) {
+            if (userHeliosAddresses != null) {
+                for (HeliosNetworkAddress a : userHeliosAddresses) {
+                    Log.d(TAG, "getCurrentOnlineStatus do we have address: " + a.getNetworkId());
+                    if (a.getNetworkId() != null && mHeartbeatUsersDm.containsKey(a.getNetworkId())) {
+                        arr.add(mHeartbeatUsersDm.get(a.getNetworkId()));
+                    }
                 }
             }
         }
-
         return arr;
     }
 
@@ -129,7 +135,7 @@ public class HeartbeatManager {
      */
     public List<HeliosEgoTag> getTopicOnlineUsers(String topic) {
         // Check that topic is not empty or null
-        if (TextUtils.isEmpty(topic)) {
+        if (!mEnabled || TextUtils.isEmpty(topic)) {
             return new ArrayList<>();
         }
 
@@ -147,16 +153,18 @@ public class HeartbeatManager {
      * @param msg Helios message
      */
     public void addTopicOnlineUser(String topic, HeliosMessagePart msg) {
-        if (!mHeartbeatUsers.containsKey(topic)) {
-            mHeartbeatUsers.put(topic, new Hashtable<>());
-        }
-        // TODO: Should verify networkId
-        HeliosEgoTag egoTag = createEgoTag(msg);
-        mHeartbeatUsers.get(topic).put(msg.senderUUID, egoTag);
+        if (mEnabled) {
+            if (!mHeartbeatUsers.containsKey(topic)) {
+                mHeartbeatUsers.put(topic, new Hashtable<>());
+            }
+            // TODO: Should verify networkId
+            HeliosEgoTag egoTag = createEgoTag(msg);
+            mHeartbeatUsers.get(topic).put(msg.senderUUID, egoTag);
 
-        // Also update individual network id status table
-        Log.d(TAG, "--updateUserOnline getNetworkId: " + egoTag.getNetworkId() + " - " + msg.senderNetworkId);
-        mHeartbeatUsersDm.put(egoTag.getNetworkId(), egoTag);
+            // Also update individual network id status table
+            Log.d(TAG, "--updateUserOnline getNetworkId: " + egoTag.getNetworkId() + " - " + msg.senderNetworkId);
+            mHeartbeatUsersDm.put(egoTag.getNetworkId(), egoTag);
+        }
     }
 
     /**
@@ -166,9 +174,11 @@ public class HeartbeatManager {
      * @param msg HeliosMessagePart
      */
     public void updateUserOnline(HeliosNetworkAddress address, HeliosMessagePart msg) {
-        Log.d(TAG, "updateUserOnline getNetworkId: " + address.getNetworkId() + " - " + msg.senderNetworkId);
-        HeliosEgoTag egoTag = createEgoTag(msg);
-        mHeartbeatUsersDm.put(egoTag.getNetworkId(), egoTag);
+        if (mEnabled) {
+            Log.d(TAG, "updateUserOnline getNetworkId: " + address.getNetworkId() + " - " + msg.senderNetworkId);
+            HeliosEgoTag egoTag = createEgoTag(msg);
+            mHeartbeatUsersDm.put(egoTag.getNetworkId(), egoTag);
+        }
     }
 
     /**
@@ -199,58 +209,62 @@ public class HeartbeatManager {
      * @param connector Caller must pass HeliosConnect object
      */
     public void start(HeliosMessaging messaging, HeliosConnect connector, HeliosIdentityInfo identity) {
-        Log.d(TAG, "start()");
-        mActive = true;
-        mHeartbeatHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "mHeartbeatHandler.run() " + Thread.currentThread().getId());
-                if (connector.isConnected()) {
-                    ZonedDateTime sinceTs = ZonedDateTime.now().minusDays(7);
-                    // FIXME: Is this iteration thread safe?
-                    ArrayList<HeliosConversation> conversationList = HeliosConversationList.getInstance().getConversations();
-                    for (int i = 0; i < conversationList.size(); i++) {
-                        HeliosConversation conversation = conversationList.get(i);
-                        // Only send HEARTBEAT to groups, i.e., now without UUID
-                        if (TextUtils.isEmpty(conversation.topic.uuid)) {
-                            Log.d(TAG, "mHeartbeat send to topic:" + conversation.topic.topic);
-                            HeliosMessagePart heartbeatMsg = createNewMessage(conversation.topic.topic,
-                                    "heartbeat " + mHeartbeatCounter,
-                                    identity,
-                                    HeliosMessagePart.MessagePartType.HEARTBEAT);
-                            if (heartbeatMsg == null) {
-                                Log.e(TAG, "Identity info is missing - heartbeat message is not sent");
-                                return;
-                            }
-                            heartbeatMsg.mediaFileData = conversation.formatBloom(sinceTs);
-                            heartbeatMsg.sinceTs = sinceTs.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
-
-                            try {
-                                if (mActive) {
-                                    messaging.publish(new HeliosTopic(heartbeatMsg.to, heartbeatMsg.to),
-                                            new HeliosMessage(JsonMessageConverter.getInstance().convertToJson(heartbeatMsg)));
-                                    Log.d(TAG, "heartbeat sent to:" + heartbeatMsg.to);
-                                } else {
-                                    Log.d(TAG, "skip heartbeat to:" + heartbeatMsg.to);
+        if (mEnabled) {
+            Log.d(TAG, "start()");
+            mActive = true;
+            mHeartbeatHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(TAG, "mHeartbeatHandler.run() " + Thread.currentThread().getId());
+                    if (connector.isConnected()) {
+                        ZonedDateTime sinceTs = ZonedDateTime.now().minusDays(7);
+                        // FIXME: Is this iteration thread safe?
+                        ArrayList<HeliosConversation> conversationList = HeliosConversationList.getInstance().getConversations();
+                        for (int i = 0; i < conversationList.size(); i++) {
+                            HeliosConversation conversation = conversationList.get(i);
+                            // Only send HEARTBEAT to groups, i.e., now without UUID
+                            if (TextUtils.isEmpty(conversation.topic.uuid)) {
+                                Log.d(TAG, "mHeartbeat send to topic:" + conversation.topic.topic);
+                                HeliosMessagePart heartbeatMsg = createNewMessage(conversation.topic.topic,
+                                        "heartbeat " + mHeartbeatCounter,
+                                        identity,
+                                        HeliosMessagePart.MessagePartType.HEARTBEAT);
+                                if (heartbeatMsg == null) {
+                                    Log.e(TAG, "Identity info is missing - heartbeat message is not sent");
+                                    return;
                                 }
-                            } catch (HeliosMessagingException e) {
-                                Log.e(TAG, "heartbeat.run error sending to:" + heartbeatMsg.to);
-                                e.printStackTrace();
+                                heartbeatMsg.mediaFileData = conversation.formatBloom(sinceTs);
+                                heartbeatMsg.sinceTs = sinceTs.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
+
+                                try {
+                                    if (mActive) {
+                                        messaging.publish(new HeliosTopic(heartbeatMsg.to, heartbeatMsg.to),
+                                                new HeliosMessage(JsonMessageConverter.getInstance().convertToJson(heartbeatMsg)));
+                                        Log.d(TAG, "heartbeat sent to:" + heartbeatMsg.to);
+                                    } else {
+                                        Log.d(TAG, "skip heartbeat to:" + heartbeatMsg.to);
+                                    }
+                                } catch (HeliosMessagingException e) {
+                                    Log.e(TAG, "heartbeat.run error sending to:" + heartbeatMsg.to);
+                                    e.printStackTrace();
+                                }
                             }
                         }
+                        mHeartbeatCounter++;
                     }
-                    mHeartbeatCounter++;
+                    mHeartbeatHandler.postDelayed(this, mHeartbeatInterval);
                 }
-                mHeartbeatHandler.postDelayed(this, mHeartbeatInterval);
-            }
-        }, mHeartbeatDelay);
+            }, mHeartbeatDelay);
+        }
     }
 
     /**
      * Stop heartbeat messages
      */
     public void stop() {
-        mHeartbeatHandlerThread.quit();
+        if (mEnabled) {
+            mHeartbeatHandlerThread.quit();
+        }
     }
 
     public void activate() {
@@ -274,24 +288,28 @@ public class HeartbeatManager {
      * @throws HeartbeatDataException No heartbeat payload found (ok for fresh start)
      */
     public List<HeliosMessagePart> collectMissingMessages(HeliosMessagePart msg, HeliosConversation conversation) throws HeartbeatDataException {
-        Log.d(TAG, "collectMissingMessages()" );
+        if (mEnabled) {
+            Log.d(TAG, "collectMissingMessages()");
 
-        if ((msg == null) || !isHeartbeatMsg(msg) || (msg.mediaFileData == null) || (msg.mediaFileData.length == 0)) {
-            throw new HeartbeatDataException();
+            if ((msg == null) || !isHeartbeatMsg(msg) || (msg.mediaFileData == null) || (msg.mediaFileData.length == 0)) {
+                throw new HeartbeatDataException();
+            }
+            BloomFilter<String> filter = HeliosConversation.parseBloom(msg.mediaFileData);
+
+            ZonedDateTime sinceTs = msg.sinceTs == null ?
+                    ZonedDateTime.now().minusDays(7) :
+                    ZonedDateTime.parse(msg.sinceTs, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+
+            List<HeliosMessagePart> recentMessages = conversation.getMessagesAfter(sinceTs);
+            List<HeliosMessagePart> missingMessages = recentMessages
+                    .stream()
+                    .filter(storedMsg -> storedMsg.messageType == HeliosMessagePart.MessagePartType.MESSAGE)
+                    .filter(storedMsg -> !filter.mightContain(storedMsg.getUuid()))
+                    .collect(Collectors.toList());
+            return missingMessages;
+        } else {
+            return new ArrayList<HeliosMessagePart>();
         }
-        BloomFilter<String> filter = HeliosConversation.parseBloom(msg.mediaFileData);
-
-        ZonedDateTime sinceTs = msg.sinceTs == null ?
-                ZonedDateTime.now().minusDays(7) :
-                ZonedDateTime.parse(msg.sinceTs, DateTimeFormatter.ISO_ZONED_DATE_TIME);
-
-        List<HeliosMessagePart> recentMessages = conversation.getMessagesAfter(sinceTs);
-        List<HeliosMessagePart> missingMessages = recentMessages
-                .stream()
-                .filter(storedMsg -> storedMsg.messageType == HeliosMessagePart.MessagePartType.MESSAGE)
-                .filter(storedMsg -> !filter.mightContain(storedMsg.getUuid()))
-                .collect(Collectors.toList());
-        return missingMessages;
     }
 
     /**
@@ -304,14 +322,16 @@ public class HeartbeatManager {
      * @param delay
      */
     public void sendDelayed(HeliosMessaging messaging, String topic, String msg, HeliosIdentityInfo identity, HeliosMessagePart.MessagePartType msgType, int delay) {
-        mHeartbeatHandler.postDelayed(() -> {
-            HeliosMessagePart message = createNewMessage(topic, msg, identity, msgType);
-            try {
-                messaging.publish(new HeliosTopic(message.to, message.to), new HeliosMessage(JsonMessageConverter.getInstance().convertToJson(message)));
-            } catch (HeliosMessagingException e) {
-                e.printStackTrace();
-            }
-        }, delay);
+        if (mEnabled) {
+            mHeartbeatHandler.postDelayed(() -> {
+                HeliosMessagePart message = createNewMessage(topic, msg, identity, msgType);
+                try {
+                    messaging.publish(new HeliosTopic(message.to, message.to), new HeliosMessage(JsonMessageConverter.getInstance().convertToJson(message)));
+                } catch (HeliosMessagingException e) {
+                    e.printStackTrace();
+                }
+            }, delay);
+        }
     }
 
     private HeliosMessagePart createNewMessage(String topic, String msg, HeliosIdentityInfo identity, HeliosMessagePart.MessagePartType msgType) {
